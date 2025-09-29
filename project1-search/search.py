@@ -87,6 +87,27 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     
+    # Initialize the data structure for this algorithm. 
+    frontier = util.Stack()
+
+    # pushing the start state, initializing the search. 
+    frontier.push((problem.getStartState(), [], 0))
+
+    # To keep track of the already expanded nodes. 
+    expanded_dataset = {} 
+
+    while not frontier.isEmpty():
+        state, actions_taken, cost_total =  frontier.pop()
+
+        if(problem.isGoalState(state)):
+            return actions_taken
+        if state not in expanded_dataset:
+            expanded_dataset.add(state)
+            for node in problem.getSuccessors(state):
+                frontier.push(node)
+
+
+
 
 
     util.raiseNotDefined()
