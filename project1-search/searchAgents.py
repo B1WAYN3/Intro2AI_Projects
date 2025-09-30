@@ -342,12 +342,12 @@ class CornersProblem(search.SearchProblem):
            nextx, nexty = int (x + previousx), int(y + previousy)
 
            if not self.walls[nextx][nexty]: # check if next action is a wall
-               nextPosition = (nextx , nexty)
+                nextPosition = (nextx , nexty)
 
-               nextVisitedState = list(visited_states)
-               if nextPosition in self.corners: 
-                   index = self.corners.index(nextPosition)
-                   nextVisitedState[index] = True
+                nextVisitedState = list(visited_states)
+                if nextPosition in self.corners: 
+                    index = self.corners.index(nextPosition)
+                    nextVisitedState[index] = True
 
                 successors.append(((nextPosition, tuple(nextVisitedState)), action, 1))
 
@@ -405,12 +405,30 @@ def cornersHeuristic(state, problem):
 
     # MST weight over the unvisited corners (inline Prim’s algorithm)
     mst_cost  = 0 
-    compare_tree = set([0]) # index into first corner
-    while len(compare_tree) < len(unvisited_states):
-        best_move
-    
+    compare_nodes = set([0]) # index into first corner
+    while len(compare_nodes) < len(unvisited_states):
+        edge_distance = None
+        corner_index = None 
 
-    return # heuristics  Default to trivial solution
+        # Check Shortest edge from a connected corner to any unvisited corner 
+        for connection_index in compare_nodes:
+            for current_index in range(len(unvisited_states)):
+                if current_index in compare_nodes: 
+                    continue 
+                distance_total = util.manhattanDistance(
+                    unvisited_states[connection_index],
+                    unvisited_states[current_index]
+                ) 
+                if edge_distance is None or distance_total < edge_distance:
+                    edge_distance = distance_total
+                    corner_index = current_index
+
+        # compute heuristic 
+        mst_cost += edge_distance
+        compare_nodes.add(corner_index)
+
+    # Heuristic = Closest Distance to corner + MST cost 
+    return closest_corn + mst_cost
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
