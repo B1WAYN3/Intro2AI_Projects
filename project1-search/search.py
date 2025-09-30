@@ -151,12 +151,8 @@ def uniformCostSearch(problem):
     # pushing the start state, initializing the search. Set priority 0. 
     frontier.push((problem.getStartState(), [], 0), priority=0)
 
+    # For maping the cheapest path (MAPPING STATES) cost found so far. 
     best_g_cost = {}
-
-    
-
-    # To keep track of the already expanded nodes. 
-    expanded_dataset = set() 
 
     while not frontier.isEmpty():
         state, actions_taken, current_g_factor =  frontier.pop()
@@ -164,16 +160,35 @@ def uniformCostSearch(problem):
         if(problem.isGoalState(state)):
             return actions_taken
         
-        if state not in expanded_dataset:
-            expanded_dataset.add(state)
+        # Avoid states when they are more expensive.
+        if state in best_g_cost and  current_g_factor > best_g_cost[state]: 
+            continue
 
-            # Search the children of the current node. 
-            for succ_state, action, succ_Cost in problem.getSuccessors(state):
-                new_actions = actions_taken + [action]    # extend path
-                new_cost = cost_total + succ_Cost          # accumulate cost of the whole path from the start
-                frontier.push((succ_state, new_actions, new_cost))
+        # add the state to the mapping bruv 
+        best_g_cost[state] = current_g_factor 
 
-    # If we get here, no solution was found unforch 
+        
+        # Search the children of the current node. 
+        for succ_state, succ_action, succ_Cost in problem.getSuccessors(state):
+            new_actions = actions_taken + [succ_action]    # extend path
+            new_g_spot = current_g_factor + succ_Cost          # accumulate cost of the whole path from the start
+            frontier.update((succ_state, new_actions, new_g_spot), new_g_spot)
+
+    # Lets goooo
+    # PS C:\Users\Wayne\Desktop\FALL 2025\AI\Project_Repo\Intro2AI_Projects\project1-search> python pacman.py -l mediumMaze -p SearchAgent -a fn=ucs
+    # [SearchAgent] using function ucs
+    # [SearchAgent] using problem type PositionSearchProblem
+    # Path found with total cost of 68 in 0.0 seconds
+    # Search nodes expanded: 275
+    # Pacman emerges victorious! Score: 442
+    # Average Score: 442.0
+    # Scores:        442.0
+    # Win Rate:      1/1 (1.00)
+    # Record:        Win
+
+    
+    # If we get here, no solution was found unforch.
+    # If you're reading this, it's too late -- Drake. 
     return []
 
 def nullHeuristic(state, problem=None):
