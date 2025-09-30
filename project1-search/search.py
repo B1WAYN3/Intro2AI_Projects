@@ -94,7 +94,7 @@ def depthFirstSearch(problem):
     frontier.push((problem.getStartState(), [], 0))
 
     # To keep track of the already expanded nodes. 
-    expanded_dataset = {} 
+    expanded_dataset = set() 
 
     while not frontier.isEmpty():
         state, actions_taken, cost_total =  frontier.pop()
@@ -103,24 +103,78 @@ def depthFirstSearch(problem):
             return actions_taken
         if state not in expanded_dataset:
             expanded_dataset.add(state)
-            for node in problem.getSuccessors(state):
-                frontier.push(node)
 
+            # Search the children of the current node. 
+            for succ_state, action, succ_Cost in problem.getSuccessors(state):
+                new_actions = actions_taken + [action]    # extend path
+                new_cost = cost_total + succ_Cost          # accumulate cost of the whole path from the start
+                frontier.push((succ_state, new_actions, new_cost))
 
-
-
-
-    util.raiseNotDefined()
+    # If we get here, no solution was found unforch 
+    return []
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Identical to DFS, except with a different data structure
+    # Initialize the data structure for this algorithm. 
+    frontier = util.Queue()
+
+    # pushing the start state, initializing the search. 
+    frontier.push((problem.getStartState(), [], 0))
+
+    # To keep track of the already expanded nodes. 
+    expanded_dataset = set() 
+
+    while not frontier.isEmpty():
+        state, actions_taken, cost_total =  frontier.pop()
+
+        if(problem.isGoalState(state)):
+            return actions_taken
+        if state not in expanded_dataset:
+            expanded_dataset.add(state)
+
+            # Search the children of the current node. 
+            for succ_state, action, succ_Cost in problem.getSuccessors(state):
+                new_actions = actions_taken + [action]    # extend path
+                new_cost = cost_total + succ_Cost          # accumulate cost of the whole path from the start
+                frontier.push((succ_state, new_actions, new_cost))
+
+    # If we get here, no solution was found unforch 
+    return []
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    frontier = util.PriorityQueue()
+
+    # pushing the start state, initializing the search. Set priority 0. 
+    frontier.push((problem.getStartState(), [], 0), priority=0)
+
+    best_g_cost = {}
+
+    
+
+    # To keep track of the already expanded nodes. 
+    expanded_dataset = set() 
+
+    while not frontier.isEmpty():
+        state, actions_taken, current_g_factor =  frontier.pop()
+
+        if(problem.isGoalState(state)):
+            return actions_taken
+        
+        if state not in expanded_dataset:
+            expanded_dataset.add(state)
+
+            # Search the children of the current node. 
+            for succ_state, action, succ_Cost in problem.getSuccessors(state):
+                new_actions = actions_taken + [action]    # extend path
+                new_cost = cost_total + succ_Cost          # accumulate cost of the whole path from the start
+                frontier.push((succ_state, new_actions, new_cost))
+
+    # If we get here, no solution was found unforch 
+    return []
 
 def nullHeuristic(state, problem=None):
     """
