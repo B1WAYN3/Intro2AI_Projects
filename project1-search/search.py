@@ -152,6 +152,8 @@ def uniformCostSearch(problem):
     frontier.push((problem.getStartState(), [], 0), priority=0)
 
     # For maping the cheapest path (MAPPING STATES) cost found so far. 
+    # hashtag we love our dictionaries bruv 
+    # best_g_cost: dict[state, g_value]
     best_g_cost = {}
 
     while not frontier.isEmpty():
@@ -191,6 +193,8 @@ def uniformCostSearch(problem):
     # If you're reading this, it's too late -- Drake. 
     return []
 
+
+
 def nullHeuristic(state, problem=None):
     """
     A heuristic function estimates the cost from the current state to the nearest
@@ -198,10 +202,49 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """Oh fucc u have to implement the nullHeuristic function lmfao before running this"""
+    frontier = util.PriorityQueue()
+
+    # pushing the start state, initializing the search. 
+    frontier.push((problem.getStartState(), [], 0), heuristic(problem.getStartState(), problem))
+
+    # For maping the cheapest path (MAPPING STATES) cost found so far. 
+    # hashtag we love our dictionaries bruv 
+    # best_g_cost: dict[state, g_value]
+    best_g_cost = {}
+
+    while not frontier.isEmpty():
+        state, actions_taken, current_g_factor =  frontier.pop()
+
+        if(problem.isGoalState(state)):
+            return actions_taken
+        
+        # Avoid states when they are more expensive.
+        if state in best_g_cost and  current_g_factor > best_g_cost[state]: 
+            continue
+
+        # add the state to the mapping bruv 
+        best_g_cost[state] = current_g_factor 
+
+        
+        # Search the children of the current node. 
+        for succ_state, succ_action, succ_Cost in problem.getSuccessors(state):
+            new_actions = actions_taken + [succ_action]    # extend path
+            new_g_spot = current_g_factor + succ_Cost          # accumulate cost of the whole path from the start
+            new_f_spot = new_g_spot + heuristic(succ_state, problem)
+            frontier.update((succ_state, new_actions, new_g_spot), new_f_spot) # update the data structure
+
+    # If we get here, no solution was found unforch.
+    # If you're reading this, it's too late -- Drake. 
+    return []
+
+    
+
+    
+
 
 
 # Abbreviations
