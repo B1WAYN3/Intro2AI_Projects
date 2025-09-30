@@ -393,9 +393,23 @@ def cornersHeuristic(state, problem):
         if not visited_states[i]:
             unvisited_states.append(corners[i])
 
-        if not unvisited_states: 
-            return 0 
-     
+    if len(unvisited_states) == 0 :
+        return 0
+    
+    # Calculate the distance to the closest corner 
+    closest_corn = None
+    for ccorner in unvisited_states: 
+        man_val = manhattanHeuristic(current_position, ccorner)
+        if closest_corn is None or man_val < closest_corn: 
+            closest_corn = man_val
+
+    # MST weight over the unvisited corners (inline Prim’s algorithm)
+    mst_cost  = 0 
+    compare_tree = set([0]) # index into first corner
+    while len(compare_tree) < len(unvisited_states):
+        best_move
+    
+
     return # heuristics  Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
