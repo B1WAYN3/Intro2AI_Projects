@@ -381,11 +381,11 @@ def cornersHeuristic(state, problem):
     shortest path from the state to a goal of the problem; i.e.  it should be
     admissible (as well as consistent).
     """
+    from util import manhattanDistance
+
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     current_position, visited_states = state
-    corners = problem.corners 
 
     # Must make a total count of unvisited states 
     unvisited_states = []
@@ -393,42 +393,64 @@ def cornersHeuristic(state, problem):
         if not visited_states[i]:
             unvisited_states.append(corners[i])
 
+    # this is when all corners have been visited (lets goo) 
     if len(unvisited_states) == 0 :
         return 0
     
     # Calculate the distance to the closest corner 
     closest_corn = None
     for ccorner in unvisited_states: 
-        man_val = manhattanHeuristic(current_position, ccorner)
+        man_val = util.manhattanDistance(current_position, ccorner)
         if closest_corn is None or man_val < closest_corn: 
             closest_corn = man_val
 
-    # MST weight over the unvisited corners (inline Prim’s algorithm)
+    # MST weight over the unvisited corners (Prim’s algorithm, Idea from "ChatGPT")
     mst_cost  = 0 
     compare_nodes = set([0]) # index into first corner
-    while len(compare_nodes) < len(unvisited_states):
-        edge_distance = None
-        corner_index = None 
 
-        # Check Shortest edge from a connected corner to any unvisited corner 
-        for connection_index in compare_nodes:
-            for current_index in range(len(unvisited_states)):
-                if current_index in compare_nodes: 
-                    continue 
-                distance_total = util.manhattanDistance(
-                    unvisited_states[connection_index],
-                    unvisited_states[current_index]
-                ) 
-                if edge_distance is None or distance_total < edge_distance:
-                    edge_distance = distance_total
-                    corner_index = current_index
+    # ok, program kept stalling infinetely, I think this will fix it. 
+    # if there are only one unvisted corner, then cost automatically becomes 0. 
+    if len(unvisited_states) > 1:
+        while len(compare_nodes) < len(unvisited_states):
+            edge_distance = None
+            corner_index = None 
 
-        # compute heuristic 
-        mst_cost += edge_distance
-        compare_nodes.add(corner_index)
+            # Check Shortest edge from a connected corner to any unvisited corner 
+            for connection_index in compare_nodes:
+                for current_index in range(len(unvisited_states)):
+                    if current_index in compare_nodes: 
+                        continue 
+                    distance_total = util.manhattanDistance(
+                        unvisited_states[connection_index],
+                        unvisited_states[current_index]
+                    ) 
+                    if edge_distance is None or distance_total < edge_distance:
+                        edge_distance = distance_total
+                        corner_index = current_index
+            if edge_distance is None or corner_index is None:
+                # Safety so that no infinite loop occurs and program crashes. 
+                # stop adding more. 
+                break
+            # compute heuristic 
+            mst_cost += edge_distance
+            compare_nodes.add(corner_index)
+
+    heuristic_val = closest_corn + mst_cost
+
+    # Want to ensure non-negative value and that goal returns freakin 0 value (lets goo beaches)
+    if len(unvisited_states) == 0:
+        return 0
+    if heuristic_val < 0: 
+        heuristic_val = 0
+
+    #Test: 
+    assert closest_corn is not None
+    assert heuristic_val >= 0
+    if all(visited_states):
+        assert heuristic_val == 0
 
     # Heuristic = Closest Distance to corner + MST cost 
-    return closest_corn + mst_cost
+    return heuristic_val
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -520,9 +542,92 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
+    import heapq 
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    # Food grig for sampeling coordinates 
+    remaining_food_positions = foodGrid.asList()
+
+    # Check to see if there is food left, return 0 when at goal state
+    if not remaining_food_positions: 
+        return 0
+    
+    # a shared cache for maze distance 
+    distance_cache = problem.heuristicInfo.setdefault("mazeDist", {})
+
+    # helper funciton
+    # return cached mazeDistance(point_a, point_b)
+    def maze_dist(point_a, point_b):
+        key = (point_a, point_b)
+        if key in distance_cache: 
+            return distance_cache[key]
+        
+        # Compute shortest-path in the maze not through walls 
+        distance = mazeDistance(point_a, point_b, problem.startingGameState)
+        # Forward direction
+        distance_cache[key] = distance
+        distance_cache[(point_b, point_a)] = distance
+        return distance 
+    
+    # Distance to the farthest remaining food 
+    fart_hest_food_distance = 0 # initialize as zero
+    for food_position in remaining_food_positions:
+        # want to use true maze distance 
+        # and want to maximize to get farthest. 
+        fart_hest_food_distance = max(fart_hest_food_distance, maze_dist(position, food_position))
+
+    # MST over the food nodes will tighten the bound when the set is small 
+    if len(remaining_food_positions) <= 10: 
+        # note all unvisited food positions
+        unvisited_food = set(remaining_food_positions)
+        # restructure the search 
+        start_food = max(remaining_food_positions, key=lambda var: maze_dist(position, var))
+
+        # move node into the MST
+        unvisited_food.remove(start_food)
+        # Food within the MST already
+        visited_food = {start_food}
+        # initialize weight 
+        mst_cost = 0
+
+        # minimum heap of cost of all edgest to the food 
+        candidate_edgest = []
+
+        # initialization of unvisited food 
+        for food_position in unvisited_food: # only visiting nodes remaining 
+            # push edge into the heap 
+            heapq.heappush(candidate_edgest, (maze_dist(start_food, food_position), food_position))
+        
+        # must include all food points/nodes 
+        while unvisited_food: 
+            # popping shortest edge 
+            while candidate_edgest: 
+                edge_cost, to_food = heapq.heappop(candidate_edgest)
+                # check if it has/will reach new node
+                if to_food in unvisited_food: 
+                    break
+            else: 
+                # safety check, if here, then no edges left and thus need to break the cycle
+                break 
+
+            # add to total cost bruv 
+            mst_cost += edge_cost
+            # mark node as inside MST, so remove from list
+            unvisited_food.remove(to_food)
+            # track visited
+            visited_food.add(to_food)
+
+            # add new edge from the new node to the reminining unvisited nodes 
+            for food_position in list(unvisited_food): 
+                heapq.heappush(candidate_edgest, (maze_dist(to_food, food_position), food_position))
+
+        # Max bound keeps admissibility because each term is a valid node 
+        return max(fart_hest_food_distance, mst_cost)
+    
+    # if many food remains then stick with the cheapest bound 
+    return fart_hest_food_distance
+
+    
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -553,7 +658,8 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        problem = AnyFoodSearchProblem(gameState)
+        return search.bfs(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -589,7 +695,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
 
 def mazeDistance(point1, point2, gameState):
     """
