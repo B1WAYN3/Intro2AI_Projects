@@ -205,44 +205,43 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    """Oh fucc u have to implement the nullHeuristic function lmfao before running this"""
     frontier = util.PriorityQueue()
-
-    # pushing the start state, initializing the search. 
-    frontier.push((problem.getStartState(), [], 0), heuristic(problem.getStartState(), problem))
-
-    # For maping the cheapest path (MAPPING STATES) cost found so far. 
-    # hashtag we love our dictionaries bruv 
-    # best_g_cost: dict[state, g_value]
-    best_g_cost = {}
-
-    while not frontier.isEmpty():
-        state, actions_taken, current_g_factor =  frontier.pop()
-
-        if(problem.isGoalState(state)):
-            return actions_taken
-        
-        # Avoid states when they are more expensive.
-        if state in best_g_cost and  current_g_factor > best_g_cost[state]: 
-            continue
-
-        # add the state to the mapping bruv 
-        best_g_cost[state] = current_g_factor 
-
-        
-        # Search the children of the current node. 
-        for succ_state, succ_action, succ_Cost in problem.getSuccessors(state):
-            new_actions = actions_taken + [succ_action]    # extend path
-            new_g_spot = current_g_factor + succ_Cost          # accumulate cost of the whole path from the start
-            new_f_spot = new_g_spot + heuristic(succ_state, problem)
-            frontier.update((succ_state, new_actions, new_g_spot), new_f_spot) # update the data structure
-
-    # If we get here, no solution was found unforch.
-    # If you're reading this, it's too late -- Drake. 
-    return []
-
     
-
+    start_state = problem.getStartState()
+    start_h = heuristic(start_state, problem)
+    
+    # Add starting position to frontier
+    frontier.update((start_state, [], 0), start_h)
+    
+    # Remember which states we've already explored
+    visited = {}
+    
+    while not frontier.isEmpty():
+        # Get the most promising state (lowest f-cost)
+        state, actions, g_cost = frontier.pop()
+        
+        # Return path if we found goal
+        if problem.isGoalState(state):
+            return actions
+        
+        # Skip if we already explored this state
+        if state in visited:
+            continue
+        
+        # Mark this state as explored
+        visited[state] = g_cost
+        
+        # Look at all neighboring states
+        for succ_state, action, step_cost in problem.getSuccessors(state):
+            new_actions = actions + [action]  # Build path
+            new_g = g_cost + step_cost  # Actual cost to reach neighbor
+            
+            # Only add neighbors we haven't explored yet
+            if succ_state not in visited:
+                new_f = new_g + heuristic(succ_state, problem)
+                frontier.update((succ_state, new_actions, new_g), new_f)
+    
+    return []
     
 
 
