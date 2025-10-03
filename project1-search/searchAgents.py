@@ -366,8 +366,6 @@ class CornersProblem(search.SearchProblem):
             x, y = int(x + dx), int(y + dy)
             if self.walls[x][y]: return 999999
         return len(actions)
-
-
 def cornersHeuristic(state, problem):
     """
     A heuristic for the CornersProblem that you defined.
@@ -381,11 +379,11 @@ def cornersHeuristic(state, problem):
     shortest path from the state to a goal of the problem; i.e.  it should be
     admissible (as well as consistent).
     """
+    from util import manhattanDistance
+
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     current_position, visited_states = state
-    corners = problem.corners 
 
     # Must make a total count of unvisited states 
     unvisited_states = []
@@ -393,42 +391,64 @@ def cornersHeuristic(state, problem):
         if not visited_states[i]:
             unvisited_states.append(corners[i])
 
+    # this is when all corners have been visited (lets goo) 
     if len(unvisited_states) == 0 :
         return 0
     
     # Calculate the distance to the closest corner 
     closest_corn = None
     for ccorner in unvisited_states: 
-        man_val = manhattanHeuristic(current_position, ccorner)
+        man_val = util.manhattanDistance(current_position, ccorner)
         if closest_corn is None or man_val < closest_corn: 
             closest_corn = man_val
 
-    # MST weight over the unvisited corners (inline Prim’s algorithm, Idea from "ChatGPT")
+    # MST weight over the unvisited corners (Prim’s algorithm, Idea from "ChatGPT")
     mst_cost  = 0 
     compare_nodes = set([0]) # index into first corner
-    while len(compare_nodes) < len(unvisited_states):
-        edge_distance = None
-        corner_index = None 
 
-        # Check Shortest edge from a connected corner to any unvisited corner 
-        for connection_index in compare_nodes:
-            for current_index in range(len(unvisited_states)):
-                if current_index in compare_nodes: 
-                    continue 
-                distance_total = util.manhattanDistance(
-                    unvisited_states[connection_index],
-                    unvisited_states[current_index]
-                ) 
-                if edge_distance is None or distance_total < edge_distance:
-                    edge_distance = distance_total
-                    corner_index = current_index
+    # ok, program kept stalling infinetely, I think this will fix it. 
+    # if there are only one unvisted corner, then cost automatically becomes 0. 
+    if len(unvisited_states) > 1:
+        while len(compare_nodes) < len(unvisited_states):
+            edge_distance = None
+            corner_index = None 
 
-        # compute heuristic 
-        mst_cost += edge_distance
-        compare_nodes.add(corner_index)
+            # Check Shortest edge from a connected corner to any unvisited corner 
+            for connection_index in compare_nodes:
+                for current_index in range(len(unvisited_states)):
+                    if current_index in compare_nodes: 
+                        continue 
+                    distance_total = util.manhattanDistance(
+                        unvisited_states[connection_index],
+                        unvisited_states[current_index]
+                    ) 
+                    if edge_distance is None or distance_total < edge_distance:
+                        edge_distance = distance_total
+                        corner_index = current_index
+            if edge_distance is None or corner_index is None:
+                # Safety so that no infinite loop occurs and program crashes. 
+                # stop adding more. 
+                break
+            # compute heuristic 
+            mst_cost += edge_distance
+            compare_nodes.add(corner_index)
+
+    heuristic_val = closest_corn + mst_cost
+
+    # Want to ensure non-negative value and that goal returns freakin 0 value (lets goo beaches)
+    if len(unvisited_states) == 0:
+        return 0
+    if heuristic_val < 0: 
+        heuristic_val = 0
+
+    #Test: 
+    assert closest_corn is not None
+    assert heuristic_val >= 0
+    if all(visited_states):
+        assert heuristic_val == 0
 
     # Heuristic = Closest Distance to corner + MST cost 
-    return closest_corn + mst_cost
+    return heuristic_val
 
 
 class AStarCornersAgent(SearchAgent):
