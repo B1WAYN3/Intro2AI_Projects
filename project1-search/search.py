@@ -204,50 +204,49 @@ def nullHeuristic(state, problem=None):
 
 
 def aStarSearch(problem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
+    """
+    blah blah.
+
+    anyways thanks TAs. 
+    """
     frontier = util.PriorityQueue()
 
     start_state = problem.getStartState()
     start_h = heuristic(start_state, problem)
 
-    # Add starting position to frontier
+    # Seed the frontier with the start node: (state, path_so_far, g_cost)
     frontier.update((start_state, [], 0), start_h)
 
-    # Remember which states we've already explored
-    visited = {}
+    # Maps explored states to the g-cost recorded when they were finalized.
+    explored_g_map = {}
 
     while not frontier.isEmpty():
-        # Get the most promising state (lowest f-cost)
-        state, actions, g_cost = frontier.pop()
+        # Dequeue the most promising candidate (lowest f-score)
+        state, actions_taken, current_g_factor = frontier.pop()
 
-        # Return path if we found goal
+        # Goal check — return the action sequence that got us here
         if problem.isGoalState(state):
-            return actions
+            return actions_taken
 
-        # Skip if we already explored this state
-        if state in visited:
+        # Skip if we've already finalized this state
+        if state in explored_g_map:
             continue
 
-        # Mark this state as explored
-        visited[state] = g_cost
+        # Mark as explored with its settled g-cost
+        explored_g_map[state] = current_g_factor
 
-        # Look at all neighboring states
-        for succ_state, action, step_cost in problem.getSuccessors(state):
-            new_actions = actions + [action]   # Build path
-            new_g = g_cost + step_cost         # Actual cost to reach neighbor
+        # Expand neighbors
+        for succ_state, succ_action, step_cost in problem.getSuccessors(state):
+            new_actions = actions_taken + [succ_action]   # extend the path
+            new_g_factor = current_g_factor + step_cost   # accumulate path cost
 
-            # Only add neighbors we haven't explored yet
-            if succ_state not in visited:
-                new_f = new_g + heuristic(succ_state, problem)
-                frontier.update((succ_state, new_actions, new_g), new_f)
+            # Only consider successors we haven't finalized yet
+            if succ_state not in explored_g_map:
+                f_score = new_g_factor + heuristic(succ_state, problem)
+                frontier.update((succ_state, new_actions, new_g_factor), f_score)
 
+    # No solution found beaches
     return []
-
-
-    
-
-    
-
 
 
 # Abbreviations
