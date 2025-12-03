@@ -43,7 +43,8 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         "*** YOUR CODE HERE ***"
-        self.qValues = util.Counter()  # Dictionary to store Q(state, action) values
+        # Use a Counter to hold Q-values; keys are (state, action) tuples
+        self.qTable = util.Counter()
 
     def getQValue(self, state, action):
         """
@@ -51,7 +52,8 @@ class QLearningAgent(ReinforcementAgent):
           Should return 0.0 if we have never seen a state
           or the Q node value otherwise
         """
-        return self.qValues[(state, action)]
+        # Counter returns 0.0 by default for unseen keys
+        return self.qTable[(state, action)]
 
 
     def computeValueFromQValues(self, state):
@@ -61,11 +63,15 @@ class QLearningAgent(ReinforcementAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return a value of 0.0.
         """
-        legalActions = self.getLegalActions(state)
-        if not legalActions:
+        availableActions = self.getLegalActions(state)
+
+        # Terminal states have no actions, return 0
+        if len(availableActions) == 0:
             return 0.0
-        
-        return max(self.getQValue(state, action) for action in legalActions)
+
+        # Gather the Q-values for all of available actions and return the best one
+        qValList = [self.getQValue(state, a) for a in availableActions]
+        return max(qValList)
 
     def computeActionFromQValues(self, state):
         """
@@ -73,19 +79,22 @@ class QLearningAgent(ReinforcementAgent):
           are no legal actions, which is the case at the terminal state,
           you should return None.
         """
-        legalActions = self.getLegalActions(state)
-        if not legalActions:
+        availableActions = self.getLegalActions(state)
+
+        if len(availableActions) == 0:
             return None
-        
-        # Find the maximum Q-value
-        maxQValue = self.computeValueFromQValues(state)
-        
-        # Get all actions with the maximum Q-value (for tie-breaking)
-        bestActions = [action for action in legalActions 
-                       if self.getQValue(state, action) == maxQValue]
-        
-        # Break ties randomly
-        return random.choice(bestActions)
+
+        # Determine the highest Q-value among all actions
+        topQVal = self.computeValueFromQValues(state)
+
+        # Collect all the actions that achieve this top Q-value
+        tiedActions = []
+        for a in availableActions:
+            if self.getQValue(state, a) == topQVal:
+                tiedActions.append(a)
+
+        # Randomly select among tied actions
+        return random.choice(tiedActions)
 
     def getAction(self, state):
         """
@@ -98,25 +107,18 @@ class QLearningAgent(ReinforcementAgent):
           HINT: You might want to use util.flipCoin(prob)
           HINT: To pick randomly from a list, use random.choice(list)
         """
-        # Pick Action
-        legalActions = self.getLegalActions(state)
-        action = None
-        
-        
-        if not legalActions:
+        availableActions = self.getLegalActions(state)
+
+        if len(availableActions) == 0:
             return None
-        
-        # Epsilon-greedy action selection
-        if util.flipCoin(self.epsilon):
-            # Explore: choose random action
-            action = random.choice(legalActions)
-        else:
-            # Exploit: choose best action
-            action = self.computeActionFromQValues(state)
 
-        return action
+        # With probability epsilon, explore randomly
+        shouldExplore = util.flipCoin(self.epsilon)
+        if shouldExplore:
+            return random.choice(availableActions)
 
-        return action
+        # Otherwise, exploit the best known action
+        return self.computeActionFromQValues(state)
 
     def update(self, state, action, nextState, reward):
         """
@@ -127,17 +129,17 @@ class QLearningAgent(ReinforcementAgent):
           NOTE: You should never call this function,
           it will be called on your behalf
         """
-        # Q-learning update rule:
-        # Q(s,a) ← Q(s,a) + α[r + γ max_a' Q(s',a') - Q(s,a)]
-        
-        currentQValue = self.getQValue(state, action)
-        maxNextQValue = self.computeValueFromQValues(nextState)
-        
-        # Temporal difference
-        sample = reward + self.discount * maxNextQValue
-        
-        # Update Q-value
-        self.qValues[(state, action)] = currentQValue + self.alpha * (sample - currentQValue)
+        # Retrieve current Q-value for this state-action pair
+        oldQ = self.getQValue(state, action)
+
+        # Get the best Q-value from the next state
+        futureVal = self.computeValueFromQValues(nextState)
+
+        # Compute the TD target: immediate reward + discounted future value
+        tdTarget = reward + self.discount * futureVal
+
+        # Apply the Q-learning update to blend old value with new sample
+        self.qTable[(state, action)] = oldQ + self.alpha * (tdTarget - oldQ)
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
