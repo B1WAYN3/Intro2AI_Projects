@@ -204,6 +204,7 @@ def nullHeuristic(state, problem=None):
 
 
 def aStarSearch(problem, heuristic=nullHeuristic):
+<<<<<<< HEAD
     """Search the node that has the lowest combined cost and heuristic first."""
     frontier = util.PriorityQueue()
     
@@ -244,6 +245,51 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     return []
     
 
+=======
+    """
+    blah blah.
+
+    anyways thanks TAs. 
+    """
+    frontier = util.PriorityQueue()
+
+    start_state = problem.getStartState()
+    start_h = heuristic(start_state, problem)
+
+    # Seed the frontier with the start node: (state, path_so_far, g_cost)
+    frontier.update((start_state, [], 0), start_h)
+
+    # Maps explored states to the g-cost recorded when they were finalized.
+    explored_g_map = {}
+
+    while not frontier.isEmpty():
+        # Dequeue the most promising candidate (lowest f-score)
+        state, actions_taken, current_g_factor = frontier.pop()
+
+        # Goal check — return the action sequence that got us here
+        if problem.isGoalState(state):
+            return actions_taken
+
+        # Skip if we've already finalized this state
+        if state in explored_g_map:
+            continue
+
+        # Mark as explored with its settled g-cost
+        explored_g_map[state] = current_g_factor
+
+        # Expand neighbors
+        for succ_state, succ_action, step_cost in problem.getSuccessors(state):
+            new_actions = actions_taken + [succ_action]   # extend the path
+            new_g_factor = current_g_factor + step_cost   # accumulate path cost
+
+            # Only consider successors we haven't finalized yet
+            if succ_state not in explored_g_map:
+                f_score = new_g_factor + heuristic(succ_state, problem)
+                frontier.update((succ_state, new_actions, new_g_factor), f_score)
+
+    # No solution found beaches
+    return []
+>>>>>>> 34e1a4d39467d6c90508694b5972749c08a6d3f5
 
 
 # Abbreviations
